@@ -42,22 +42,30 @@
 </head>
 <body>
   <h1>Calculadora de Troca de Seringa</h1>
-  <label for="horaTroca">Horário da última troca (formato 24h - ex: 14:30):</label>
+
+  <label for="dataTroca">Data da última troca:</label>
+  <input type="date" id="dataTroca" required>
+
+  <label for="horaTroca">Hora da última troca (formato 24h - ex: 14:30):</label>
   <input type="time" id="horaTroca" required>
-  <button onclick="calcular()">Calcular tempo até próxima troca</button>
+
+  <button onclick="calcular()">Calcular próxima troca</button>
+
   <div id="resultado"></div>
 
   <script>
     function calcular() {
-      const input = document.getElementById("horaTroca").value;
-      if (!input) {
-        document.getElementById("resultado").innerText = "Por favor, insira um horário válido.";
+      const dataInput = document.getElementById("dataTroca").value;
+      const horaInput = document.getElementById("horaTroca").value;
+
+      if (!dataInput || !horaInput) {
+        document.getElementById("resultado").innerText = "Por favor, preencha a data e a hora da última troca.";
         return;
       }
 
-      const agora = new Date();
-      const [hora, minuto] = input.split(":").map(Number);
-      const inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), hora, minuto);
+      const [ano, mes, dia] = dataInput.split("-").map(Number);
+      const [hora, minuto] = horaInput.split(":").map(Number);
+      const inicio = new Date(ano, mes - 1, dia, hora, minuto);
 
       let volume = 10;
       let tempo = 0;
@@ -72,11 +80,15 @@
       }
 
       const fim = new Date(inicio.getTime() + tempo * 60 * 60 * 1000);
-      const horas = fim.getHours().toString().padStart(2, '0');
-      const minutos = fim.getMinutes().toString().padStart(2, '0');
+
+      const dataFim = fim.toLocaleDateString('pt-BR');
+      const horaFim = fim.getHours().toString().padStart(2, '0');
+      const minutoFim = fim.getMinutes().toString().padStart(2, '0');
 
       document.getElementById("resultado").innerText =
-        `A seringa deve ser trocada em aproximadamente ${tempo} horas, às ${horas}:${minutos}.`;
+        `🗓️ A seringa foi inserida em ${inicio.toLocaleDateString('pt-BR')} às ${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}.\n` +
+        `⏳ Ela deve ser trocada em aproximadamente ${tempo} horas.\n` +
+        `📅 Próxima troca estimada: ${dataFim} às ${horaFim}:${minutoFim}.`;
     }
   </script>
 </body>
