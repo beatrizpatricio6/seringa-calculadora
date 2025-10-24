@@ -4,10 +4,40 @@
   <meta charset="UTF-8">
   <title>Calculadora de Troca de Seringa</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
-    h1 { color: #333; }
-    label, input, button { font-size: 16px; margin-top: 10px; display: block; }
-    #resultado { margin-top: 20px; font-weight: bold; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      padding: 40px;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    label, input, button {
+      font-size: 16px;
+      margin-top: 15px;
+      display: block;
+      width: 100%;
+    }
+    button {
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #resultado {
+      margin-top: 20px;
+      font-weight: bold;
+      background: #fff;
+      padding: 15px;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
@@ -42,11 +72,11 @@
       }
 
       const fim = new Date(inicio.getTime() + tempo * 60 * 60 * 1000);
-      const horas = Math.floor((fim - agora) / (1000 * 60 * 60));
-      const minutos = Math.floor(((fim - agora) % (1000 * 60 * 60)) / (1000 * 60));
+      const horas = fim.getHours().toString().padStart(2, '0');
+      const minutos = fim.getMinutes().toString().padStart(2, '0');
 
       document.getElementById("resultado").innerText =
-        `A seringa deve ser trocada em aproximadamente ${tempo} horas, às ${fim.getHours().toString().padStart(2, '0')}:${fim.getMinutes().toString().padStart(2, '0')}.`;
+        `A seringa deve ser trocada em aproximadamente ${tempo} horas, às ${horas}:${minutos}.`;
     }
   </script>
 </body>
