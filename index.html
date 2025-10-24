@@ -1,1 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculadora de Troca de Seringa</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
+    h1 { color: #333; }
+    label, input, button { font-size: 16px; margin-top: 10px; display: block; }
+    #resultado { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Calculadora de Troca de Seringa</h1>
+  <label for="horaTroca">Horário da última troca (formato 24h - ex: 14:30):</label>
+  <input type="time" id="horaTroca" required>
+  <button onclick="calcular()">Calcular tempo até próxima troca</button>
+  <div id="resultado"></div>
 
+  <script>
+    function calcular() {
+      const input = document.getElementById("horaTroca").value;
+      if (!input) {
+        document.getElementById("resultado").innerText = "Por favor, insira um horário válido.";
+        return;
+      }
+
+      const agora = new Date();
+      const [hora, minuto] = input.split(":").map(Number);
+      const inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), hora, minuto);
+
+      let volume = 10;
+      let tempo = 0;
+      let atual = new Date(inicio);
+
+      while (volume > 0) {
+        const horaAtual = atual.getHours();
+        const taxa = (horaAtual >= 8 && horaAtual < 22) ? 0.8 : 0.3;
+        volume -= taxa;
+        tempo++;
+        atual.setHours(atual.getHours() + 1);
+      }
+
+      const fim = new Date(inicio.getTime() + tempo * 60 * 60 * 1000);
+      const horas = Math.floor((fim - agora) / (1000 * 60 * 60));
+      const minutos = Math.floor(((fim - agora) % (1000 * 60 * 60)) / (1000 * 60));
+
+      document.getElementById("resultado").innerText =
+        `A seringa deve ser trocada em aproximadamente ${tempo} horas, às ${fim.getHours().toString().padStart(2, '0')}:${fim.getMinutes().toString().padStart(2, '0')}.`;
+    }
+  </script>
+</body>
+</html>
