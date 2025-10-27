@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Calculadora de Troca de Seringa</title>
-  <subtitle>Considerando 0,8ml dose Base e 0,3 dose Baixa</subtitle>
+  <subtitle>Considerando 0,85ml dose Base e 0,3 dose Baixa</subtitle>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -47,7 +47,7 @@
   <label for="dataTroca">Data da última troca:</label>
   <input type="date" id="dataTroca" required>
 
-  <label for="horaTroca">Hora da última troca (formato 24h - ex: 14:30):</label>
+  <label for="horaTroca">Hora da última troca:</label>
   <input type="time" id="horaTroca" required>
 
   <button onclick="calcular()">Calcular próxima troca</button>
@@ -74,7 +74,7 @@
 
       while (volume > 0) {
         const horaAtual = atual.getHours();
-        const taxa = (horaAtual >= 8 && horaAtual < 22) ? 0.8 : 0.3;
+        const taxa = (horaAtual >= 8 && horaAtual < 22) ? 0.85 : 0.3;
         volume -= taxa;
         tempo++;
         atual.setHours(atual.getHours() + 1);
