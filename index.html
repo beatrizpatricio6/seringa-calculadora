@@ -1,28 +1,42 @@
+
 <!DOCTYPE html>
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
   <title>Calculadora de Troca de Seringa</title>
-  <subtitle>Considerando 0,85ml dose Base e 0,3 dose Baixa</subtitle>
+  <subtitle>Considerando valores configuráveis para dose Base e dose Diária</subtitle>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #f2f2f2;
       padding: 40px;
-      max-width: 600px;
+      max-width: 680px;
       margin: auto;
     }
     h1 {
       color: #333;
       text-align: center;
     }
-    label, input, button {
+    label {
+      font-size: 14px;
+      margin-top: 12px;
+      display: block;
+    }
+    input, select, button {
       font-size: 16px;
-      margin-top: 15px;
+      margin-top: 6px;
       display: block;
       width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
     button {
+      margin-top: 16px;
       padding: 10px;
       background-color: #4CAF50;
       color: white;
@@ -38,58 +52,180 @@
       background: #fff;
       padding: 15px;
       border-radius: 5px;
+      white-space: pre-line;
+    }
+    .hint {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
     }
   </style>
 </head>
 <body>
   <h1>Calculadora de Troca de Seringa</h1>
 
+  <!-- Dados da inserção -->
   <label for="dataTroca">Data da última troca:</label>
   <input type="date" id="dataTroca" required>
 
   <label for="horaTroca">Hora da última troca:</label>
   <input type="time" id="horaTroca" required>
 
+  <!-- Configurações de dose -->
+  <div class="row">
+    <div>
+      <label for="doseBase">Dose Base (ml/h):</label>
+      <input type="number" id="doseBase" step="0.01" min="0" value="0.85">
+    </div>
+    <div>
+      <label for="doseDiaria">Dose Diária (ml/h):</label>
+      <input type="number" id="doseDiaria" step="0.01" min="0" value="0.30">
+    </div>
+  </div>
+
+  <label for="qualAplicaDia">Qual dose aplicar durante o dia?</label>
+  <select id="qualAplicaDia">
+    <option value="base" selected>Aplicar Dose Base durante o dia</option>
+    <option value="diaria">Aplicar Dose Diária durante o dia</option>
+  </select>
+  <div class="hint">A dose não selecionada será aplicada durante a noite.</div>
+
+  <!-- Janela de dia configurável -->
+  <div class="row">
+    <div>
+      <label for="horaDiaInicio">Hora início do período diurno:</label>
+      <input type="time" id="horaDiaInicio" value="08:00">
+    </div>
+    <div>
+      <label for="horaDiaFim">Hora fim do período diurno:</label>
+      <input type="time" id="horaDiaFim" value="22:00">
+    </div>
+  </div>
+
+  <!-- Volume total (opcionalmente ajustável) -->
+  <div class="row">
+    <div>
+      <label for="volumeTotal">Volume total da seringa (ml):</label>
+      <input type="number" id="volumeTotal" step="0.1" min="0.1" value="10">
+    </div>
+    <div>
+      <label for="passoSimulacao">Passo da simulação (minutos):</label>
+      <input type="number" id="passoSimulacao" step="1" min="1" value="60">
+    </div>
+  </div>
+  <div class="hint">Sugestão: mantenha 60 min para replicar o comportamento hora a hora.</div>
+
   <button onclick="calcular()">Calcular próxima troca</button>
 
   <div id="resultado"></div>
 
   <script>
+    function parseTimeToMinutes(hhmm) {
+      const [h, m] = hhmm.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    function estaNoPeriodoDiurno(date, inicioMin, fimMin) {
+      const minutosDia = date.getHours() * 60 + date.getMinutes();
+      // Suporta janelas que passam pela meia-noite (ex.: 22:00–06:00)
+      if (inicioMin <= fimMin) {
+        return minutosDia >= inicioMin && minutosDia < fimMin;
+      } else {
+        return minutosDia >= inicioMin || minutosDia < fimMin;
+      }
+    }
+
     function calcular() {
       const dataInput = document.getElementById("dataTroca").value;
       const horaInput = document.getElementById("horaTroca").value;
 
+      const doseBase = parseFloat(document.getElementById("doseBase").value);
+      const doseDiaria = parseFloat(document.getElementById("doseDiaria").value);
+      const qualAplicaDia = document.getElementById("qualAplicaDia").value;
+
+      const horaDiaInicioStr = document.getElementById("horaDiaInicio").value;
+      const horaDiaFimStr = document.getElementById("horaDiaFim").value;
+
+      const volumeTotal = parseFloat(document.getElementById("volumeTotal").value);
+      const passoMin = parseInt(document.getElementById("passoSimulacao").value, 10);
+
+      const resultadoDiv = document.getElementById("resultado");
+
+      // Validações básicas
       if (!dataInput || !horaInput) {
-        document.getElementById("resultado").innerText = "Por favor, preencha a data e a hora da última troca.";
+        resultadoDiv.innerText = "Por favor, preencha a data e a hora da última troca.";
+        return;
+      }
+      if (!(doseBase >= 0) || !(doseDiaria >= 0)) {
+        resultadoDiv.innerText = "As doses devem ser números válidos e ≥ 0.";
+        return;
+      }
+      if (!(volumeTotal > 0)) {
+        resultadoDiv.innerText = "O volume total deve ser maior que 0.";
+        return;
+      }
+      if (!(passoMin > 0)) {
+        resultadoDiv.innerText = "O passo da simulação (min) deve ser maior que 0.";
         return;
       }
 
       const [ano, mes, dia] = dataInput.split("-").map(Number);
       const [hora, minuto] = horaInput.split(":").map(Number);
-      const inicio = new Date(ano, mes - 1, dia, hora, minuto);
+      const inicio = new Date(ano, mes - 1, dia, hora, minuto, 0, 0);
 
-      let volume = 10;
-      let tempo = 0;
+      const inicioDiaMin = parseTimeToMinutes(horaDiaInicioStr);
+      const fimDiaMin = parseTimeToMinutes(horaDiaFimStr);
+
+      // Define qual taxa usar de dia/noite conforme a seleção
+      const taxaDia = (qualAplicaDia === "base") ? doseBase : doseDiaria;
+      const taxaNoite = (qualAplicaDia === "base") ? doseDiaria : doseBase;
+
+      // Simulação
+      let volume = volumeTotal;
       let atual = new Date(inicio);
+      let minutosTotais = 0;
 
-      while (volume > 0) {
-        const horaAtual = atual.getHours();
-        const taxa = (horaAtual >= 8 && horaAtual < 22) ? 0.85 : 0.3;
-        volume -= taxa;
-        tempo++;
-        atual.setHours(atual.getHours() + 1);
+      // Consumo por minuto considerando o passo
+      const consumoPorMinDia = taxaDia / 60;
+      const consumoPorMinNoite = taxaNoite / 60;
+
+      // Simula em passos de 'passoMin' minutos
+      while (volume > 0 && minutosTotais < 365 * 24 * 60) { // trava de segurança de 1 ano
+        const noDia = estaNoPeriodoDiurno(atual, inicioDiaMin, fimDiaMin);
+        const consumoEstePasso = (noDia ? consumoPorMinDia : consumoPorMinNoite) * passoMin;
+        volume -= consumoEstePasso;
+
+        minutosTotais += passoMin;
+        atual = new Date(inicio.getTime() + minutosTotais * 60 * 1000);
       }
 
-      const fim = new Date(inicio.getTime() + tempo * 60 * 60 * 1000);
+      if (minutosTotais >= 365 * 24 * 60) {
+        resultadoDiv.innerText = "Algo está errado: a simulação excedeu o limite de tempo (verifique as doses e o volume).";
+        return;
+      }
 
-      const dataFim = fim.toLocaleDateString('pt-BR');
-      const horaFim = fim.getHours().toString().padStart(2, '0');
-      const minutoFim = fim.getMinutes().toString().padStart(2, '0');
+      const fim = new Date(inicio.getTime() + minutosTotais * 60 * 1000);
 
-      document.getElementById("resultado").innerText =
-        `🗓️ A seringa foi inserida em ${inicio.toLocaleDateString('pt-BR')} às ${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}.\n` +
-        `⏳ Ela deve ser trocada em aproximadamente ${tempo} horas.\n` +
-        `📅 Próxima troca estimada: ${dataFim} às ${horaFim}:${minutoFim}.`;
+      const dataInicioStr = inicio.toLocaleDateString('pt-PT');
+      const horaInicioStr = inicio.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+
+      const dataFimStr = fim.toLocaleDateString('pt-PT');
+      const horaFimStr = fim.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+
+      const horas = Math.floor(minutosTotais / 60);
+      const mins = minutosTotais % 60;
+
+      const resumoDose = `Aplicação durante o dia (${horaDiaInicioStr}–${horaDiaFimStr}): ` +
+                         `${qualAplicaDia === 'base' ? 'Dose Base' : 'Dose Diária'} = ` +
+                         `${(qualAplicaDia === 'base' ? doseBase : doseDiaria).toFixed(2)} ml/h; ` +
+                         `à noite: ${(qualAplicaDia === 'base' ? doseDiaria : doseBase).toFixed(2)} ml/h.`;
+
+      resultadoDiv.innerText =
+        `🗓️ Seringa inserida em ${dataInicioStr} às ${horaInicioStr}.\n` +
+        `⚙️ ${resumoDose}\n` +
+        `🧪 Volume total: ${volumeTotal} ml | Passo: ${passoMin} min\n` +
+        `⏳ Deve ser trocada em aproximadamente ${horas}h ${mins}min.\n` +
+        `📅 Próxima troca estimada: ${dataFimStr} às ${horaFimStr}.`;
     }
   </script>
 </body>
